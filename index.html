@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magalu - Análise de Localização para CD no Nordeste</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
+    <style>
+        :root {
+            --magalu-blue: #0066cc;
+            --magalu-orange: #ff6600;
+            --light-gray: #f4f4f4;
+            --dark-gray: #333;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f9f9f9;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--magalu-blue), #004d99);
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        
+        .card-full {
+            grid-column: 1 / -1;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .card-title {
+            font-size: 1.2rem;
+            color: var(--magalu-blue);
+            font-weight: 600;
+        }
+        
+        .map-container {
+            height: 400px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 10px 0;
+        }
+        
+        .summary {
+            background: linear-gradient(to right, #f0f8ff, #e6f2ff);
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        
+        .conclusion {
+            background-color: #e1f5fe;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border-left: 4px solid #0288d1;
+        }
+        
+        .conclusion h3 {
+            color: #0288d1;
+            margin-bottom: 10px;
+        }
+        
+        .factors {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .factor {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        
+        .factor-title {
+            font-weight: 600;
+            color: var(--magalu-blue);
+            margin-bottom: 8px;
+        }
+        
+        .recommendation {
+            background: #e8f5e9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+            border-left: 4px solid #4caf50;
+        }
+        
+        .recommendation h2 {
+            color: #2e7d32;
+            margin-bottom: 10px;
+        }
+        
+        .score {
+            display: inline-block;
+            background: var(--magalu-blue);
+            color: white;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        @media (max-width: 992px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+            
+            .factors {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Análise de Localização para CD no Nordeste</h1>
+            <p class="subtitle">Comparativo estratégico entre Recife e Salvador</p>
+        </header>
+        
+        <div class="dashboard">
+            <div class="card card-full">
+                <div class="card-header">
+                    <h2 class="card-title">Localização Geográfica e Área de Influência</h2>
+                </div>
+                <div id="map" class="map-container"></div>
+                <p class="summary">Recife apresenta posição central no Nordeste, com raio de entrega mais eficiente para 57% da população regional.</p>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Análise de Custos Imobiliários</h2>
+                </div>
+                <div class="chart-container">
+                    <canvas id="costChart"></canvas>
+                </div>
+                <p>Recife apresenta custos de implantação aproximadamente 30% menores que Salvador.</p>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Tempo de Entrega para Capitais (horas)</h2>
+                </div>
+                <div class="chart-container">
+                    <canvas id="deliveryChart"></canvas>
+                </div>
+                <p>Recife tem tempo médio de entrega 25% mais rápido para as 6 maiores capitais nordestinas.</p>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Potencial de Consumo (milhões de pessoas)</h2>
+                </div>
+                <div class="chart-container">
+                    <canvas id="consumptionChart"></canvas>
+                </div>
+                <p>Área de influência de Recife possui 22.3 milhões de habitantes contra 18.7 milhões de Salvador.</p>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Análise de Acessibilidade Viária</h2>
+                </div>
+                <div class="chart-container">
+                    <canvas id="accessibilityChart"></canvas>
+                </div>
+                <p>Recife possui conexões rodoviárias mais diretas com as principais capitais.</p>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Score Estratégico por Critério</h2>
+                </div>
+                <div class="chart-container">
+                    <canvas id="radarChart"></canvas>
+                </div>
+                <p>Recife apresenta melhor desempenho em 4 dos 5 critérios analisados.</p>
+            </div>
+        </div>
+        
+        <div class="conclusion">
+            <h3>Fatores Determinantes para a Decisão</h3>
+            <div class="factors">
+                <div class="factor">
+                    <div class="factor-title">Posição Geográfica Central</div>
+                    <p>Recife está equidistante das principais capitais nordestinas, otimizando rotas de distribuição.</p>
+                </div>
+                <div class="factor">
+                    <div class="factor-title">Custos Imobiliários Menores</div>
+                    <p>Terrenos em Recife custam entre R$ 450-650/m² contra R$ 700-950/m² em Salvador.</p>
+                </div>
+                <div class="factor">
+                    <div class="factor-title">Menor Tempo de Entrega</div>
+                    <p>Entregas 25% mais rápidas em média para as principais capitais da região.</p>
+                </div>
+                <div class="factor">
+                    <div class="factor-title">Maior Potencial de Consumo</div>
+                    <p>Área de influência com 22.3 milhões de habitantes e PIB de R$ 487 bilhões.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="recommendation">
+            <h2>Recomendação Final</h2>
+            <div class="score">Recife é a localização recomendada</div>
+            <p>Com base na análise de 5 critérios estratégicos, Recife apresenta vantagem significativa em custos, acessibilidade e potencial de mercado, sendo a melhor escolha para o novo Centro de Distribuição do Magalu no Nordeste.</p>
+        </div>
+    </div>
+
+    <script>
+        // Inicializar mapa
+        const map = L.map('map').setView([-8.75, -37.5], 6);
+        
+        // Adicionar camada do mapa
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+        
+        // Adicionar marcadores para Recife e Salvador
+        const recife = L.marker([-8.05, -34.9]).addTo(map)
+            .bindPopup('<b>Recife</b><br>Posição estratégica central')
+            .openPopup();
+            
+        const salvador = L.marker([-12.97, -38.5]).addTo(map)
+            .bindPopup('<b>Salvador</b><br>Maior cidade do Nordeste');
+        
+        // Adicionar círculos de influência
+        L.circle([-8.05, -34.9], {
+            color: '#0066cc',
+            fillColor: '#0066cc',
+            fillOpacity: 0.2,
+            radius: 250000
+        }).addTo(map).bindPopup('Área de influência de Recife');
+        
+        L.circle([-12.97, -38.5], {
+            color: '#ff6600',
+            fillColor: '#ff6600',
+            fillOpacity: 0.2,
+            radius: 250000
+        }).addTo(map).bindPopup('Área de influência de Salvador');
+        
+        // Gráfico de custos
+        const costCtx = document.getElementById('costChart').getContext('2d');
+        new Chart(costCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Custo m² Terreno', 'Custo Implantação', 'Custo Operacional Anual'],
+                datasets: [
+                    {
+                        label: 'Recife',
+                        data: [550, 8.5, 2.2],
+                        backgroundColor: '#0066cc'
+                    },
+                    {
+                        label: 'Salvador',
+                        data: [825, 12.3, 2.8],
+                        backgroundColor: '#ff6600'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'R$ (milhões)'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Gráfico de tempo de entrega
+        const deliveryCtx = document.getElementById('deliveryChart').getContext('2d');
+        new Chart(deliveryCtx, {
+            type: 'bar',
+            data: {
+                labels: ['João Pessoa', 'Maceió', 'Natal', 'Aracaju', 'Teresina'],
+                datasets: [
+                    {
+                        label: 'De Recife',
+                        data: [1.8, 2.3, 3.5, 5.2, 8.7],
+                        backgroundColor: '#0066cc'
+                    },
+                    {
+                        label: 'De Salvador',
+                        data: [3.3, 5.7, 7.2, 2.8, 10.5],
+                        backgroundColor: '#ff6600'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Horas'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Gráfico de potencial de consumo
+        const consumptionCtx = document.getElementById('consumptionChart').getContext('2d');
+        new Chart(consumptionCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Recife', 'Salvador'],
+                datasets: [{
+                    data: [22.3, 18.7],
+                    backgroundColor: ['#0066cc', '#ff6600']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+        
+        // Gráfico de acessibilidade
+        const accessibilityCtx = document.getElementById('accessibilityChart').getContext('2d');
+        new Chart(accessibilityCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Rodovias Federais', 'Conexões Interestaduais', 'Aeroporto Carga', 'Porto Proximo'],
+                datasets: [
+                    {
+                        label: 'Recife',
+                        data: [4, 6, 8, 9],
+                        backgroundColor: '#0066cc'
+                    },
+                    {
+                        label: 'Salvador',
+                        data: [5, 5, 7, 8],
+                        backgroundColor: '#ff6600'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 10,
+                        title: {
+                            display: true,
+                            text: 'Pontuação (0-10)'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Gráfico radar
+        const radarCtx = document.getElementById('radarChart').getContext('2d');
+        new Chart(radarCtx, {
+            type: 'radar',
+            data: {
+                labels: ['Custo-Benefício', 'Acessibilidade', 'Potencial Mercado', 'Infraestrutura', 'Crescimento Futuro'],
+                datasets: [
+                    {
+                        label: 'Recife',
+                        data: [85, 90, 80, 75, 85],
+                        backgroundColor: 'rgba(0, 102, 204, 0.2)',
+                        borderColor: '#0066cc',
+                        pointBackgroundColor: '#0066cc'
+                    },
+                    {
+                        label: 'Salvador',
+                        data: [70, 75, 75, 80, 70],
+                        backgroundColor: 'rgba(255, 102, 0, 0.2)',
+                        borderColor: '#ff6600',
+                        pointBackgroundColor: '#ff6600'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        angleLines: {
+                            display: true
+                        },
+                        suggestedMin: 0,
+                        suggestedMax: 100
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>
